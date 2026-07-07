@@ -22,27 +22,58 @@ export default function CommunityDiscussion({ apiKey, language, showToast }) {
   const [replyingTo, setReplyingTo] = useState(null);
   const [commentInput, setCommentInput] = useState('');
   
-  // Persistence Layer: Load opinions from localstorage or use defaults
-  const [opinions, setOpinions] = useState(() => {
-    const saved = localStorage.getItem('civic_opinions');
-    if (saved) return JSON.parse(saved);
-    return [
-      { id: 1, text: 'The proposed updates are essential for the growth of our district.', author: 'Anonymous Citizen #1024', votes: { up: 12, down: 2 }, comments: [] },
-      { id: 2, text: 'I am concerned about the allocation of funds. We need more transparency.', author: 'Anonymous Citizen #2048', votes: { up: 8, down: 15 }, comments: [] },
-      { id: 3, text: 'Prioritizing accessibility should be the first step in any new policy.', author: 'Anonymous Citizen #4096', votes: { up: 25, down: 0 }, comments: [] },
-    ];
-  });
+  // Persistence Layer: Load opinions from Supabase or use localstorage fallback
+  const [opinions, setOpinions] = useState([]);
+  const [dbActive, setDbActive] = useState(false);
 
-  // Persistence Layer: Save opinions on change
-  useEffect(() => {
-    localStorage.setItem('civic_opinions', JSON.stringify(opinions));
-  }, [opinions]);
+  const fetchOpinions = async () => {
+    try {
+      const res = await fetch('/api/opinions');
+      if (res.ok) {
+        const data = await res.json();
+        const mapped = data.map(item => ({
+          id: item.id,
+          text: item.text,
+          author: item.author,
+          votes: { up: item.votes_up || 0, down: item.votes_down || 0 },
+          comments: item.comments || []
+        }));
+        setOpinions(mapped);
+        setDbActive(true);
+      } else {
+        throw new Error('DB fetch returned status ' + res.status);
+      }
+    } catch (e) {
+      console.warn("Using localStorage fallback for opinions database:", e.message);
+      const saved = localStorage.getItem('civic_opinions');
+      if (saved) {
+        setOpinions(JSON.parse(saved));
+      } else {
+        setOpinions([
+          { id: 1, text: 'The proposed updates are essential for the growth of our district.', author: 'Anonymous Citizen #1024', votes: { up: 12, down: 2 }, comments: [] },
+          { id: 2, text: 'I am concerned about the allocation of funds. We need more transparency.', author: 'Anonymous Citizen #2048', votes: { up: 8, down: 15 }, comments: [] },
+          { id: 3, text: 'Prioritizing accessibility should be the first step in any new policy.', author: 'Anonymous Citizen #4096', votes: { up: 25, down: 0 }, comments: [] },
+        ]);
+      }
+      setDbActive(false);
+    }
+  };
+
   const [loading, setLoading] = useState(false);
   const [locationLoading, setLocationLoading] = useState(true);
   const [listening, setListening] = useState(false);
   const [aiSummary, setAiSummary] = useState('');
 
-  const sentimentData = useMemo(() => ({ support: 65, concern: 25, neutral: 10 }), [opinions]);
+  const sentimentData = useMemo(() => {
+    const totalVotes = opinions.reduce((acc, curr) => acc + (curr.votes?.up || 0) + (curr.votes?.down || 0), 0) || 1;
+    const upVotes = opinions.reduce((acc, curr) => acc + (curr.votes?.up || 0), 0);
+    const downVotes = opinions.reduce((acc, curr) => acc + (curr.votes?.down || 0), 0);
+    return {
+      support: Math.round((upVotes / totalVotes) * 100) || 60,
+      concern: Math.round((downVotes / totalVotes) * 100) || 30,
+      neutral: 10
+    };
+  }, [opinions]);
 
   const [xTrends, setXTrends] = useState([
     { tag: '#ActiveDemocracy', count: '--- posts', sentiment: 'Trending' },
@@ -72,7 +103,6 @@ export default function CommunityDiscussion({ apiKey, language, showToast }) {
 
       const aiResponse = await callAI(prompt, "Suggested trending civic topics for: " + cityName, apiKey, language);
       try {
-        // Clean markdown if AI wrapped it in code blocks
         const cleaner = aiResponse.includes('```json') ? aiResponse.split('```json')[1].split('```')[0] : aiResponse;
         const data = JSON.parse(cleaner);
         setTopic(data.topic);
@@ -99,6 +129,7 @@ export default function CommunityDiscussion({ apiKey, language, showToast }) {
 
   useEffect(() => {
     fetchRealTimeTopic();
+    fetchOpinions();
   }, []);
 
   const addOpinion = async () => {
@@ -112,14 +143,47 @@ export default function CommunityDiscussion({ apiKey, language, showToast }) {
         return;
       }
       const authorPref = t('modules.community.anonymousCitizen');
-      const newOpinion = { 
-        id: Date.now(), 
-        text: opinionInput.trim(), 
-        author: `${authorPref} #${Math.floor(Math.random() * 9000) + 1000}`, 
+      const authorName = `${authorPref} #${Math.floor(Math.random() * 9000) + 1000}`;
+      const opinionPayload = {
+        text: opinionInput.trim(),
+        author: authorName,
         votes: { up: 0, down: 0 },
         comments: []
       };
-      setOpinions([newOpinion, ...opinions]);
+
+      if (dbActive) {
+        const res = await fetch('/api/opinions', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            ...opinionPayload,
+            supabaseUrl: import.meta.env.VITE_SUPABASE_URL,
+            supabaseKey: import.meta.env.VITE_SUPABASE_ANON_KEY
+          })
+        });
+        if (res.ok) {
+          const item = await res.json();
+          const newOp = {
+            id: item.id,
+            text: item.text,
+            author: item.author,
+            votes: { up: item.votes_up, down: item.votes_down },
+            comments: item.comments || []
+          };
+          setOpinions([newOp, ...opinions]);
+          showToast("Opinion shared in global database.", "success");
+        } else {
+          throw new Error("Failed to post to global database");
+        }
+      } else {
+        const newOpinion = {
+          id: Date.now(),
+          ...opinionPayload
+        };
+        const updated = [newOpinion, ...opinions];
+        setOpinions(updated);
+        localStorage.setItem('civic_opinions', JSON.stringify(updated));
+      }
       setOpinionInput('');
     } catch (err) {
       showToast(err.message, 'error');
@@ -127,8 +191,32 @@ export default function CommunityDiscussion({ apiKey, language, showToast }) {
     setLoading(false);
   };
 
-  const handleVote = (id, type) => {
-    setOpinions(opinions.map(op => op.id === id ? { ...op, votes: { ...op.votes, [type]: op.votes[type] + 1 } } : op));
+  const handleVote = async (id, type) => {
+    const target = opinions.find(op => op.id === id);
+    if (!target) return;
+    const newVotes = { ...target.votes, [type]: target.votes[type] + 1 };
+    
+    try {
+      if (dbActive) {
+        const res = await fetch('/api/opinions', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            id,
+            votes_up: type === 'up' ? newVotes.up : undefined,
+            votes_down: type === 'down' ? newVotes.down : undefined,
+            supabaseUrl: import.meta.env.VITE_SUPABASE_URL,
+            supabaseKey: import.meta.env.VITE_SUPABASE_ANON_KEY
+          })
+        });
+        if (!res.ok) throw new Error("Vote registration failed");
+      }
+      const updated = opinions.map(op => op.id === id ? { ...op, votes: newVotes } : op);
+      setOpinions(updated);
+      if (!dbActive) localStorage.setItem('civic_opinions', JSON.stringify(updated));
+    } catch (e) {
+      showToast(e.message, 'error');
+    }
   };
 
   const addComment = async (opinionId) => {
@@ -146,7 +234,27 @@ export default function CommunityDiscussion({ apiKey, language, showToast }) {
           author: `${authorPref} #${Math.floor(Math.random() * 9000) + 1000}`,
           timestamp: new Date().toLocaleTimeString(language === 'hi-IN' ? 'hi-IN' : 'en-IN')
         };
-        setOpinions(opinions.map(op => op.id === opinionId ? { ...op, comments: [...(op.comments || []), newComment] } : op));
+        
+        const target = opinions.find(op => op.id === opinionId);
+        const updatedComments = [...(target.comments || []), newComment];
+
+        if (dbActive) {
+          const res = await fetch('/api/opinions', {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              id: opinionId,
+              comments: updatedComments,
+              supabaseUrl: import.meta.env.VITE_SUPABASE_URL,
+              supabaseKey: import.meta.env.VITE_SUPABASE_ANON_KEY
+            })
+          });
+          if (!res.ok) throw new Error("Failed to post comment to database");
+        }
+
+        const updated = opinions.map(op => op.id === opinionId ? { ...op, comments: updatedComments } : op);
+        setOpinions(updated);
+        if (!dbActive) localStorage.setItem('civic_opinions', JSON.stringify(updated));
         setCommentInput('');
         setReplyingTo(null);
         showToast("Anonymous comment shared successfully.", "success");
