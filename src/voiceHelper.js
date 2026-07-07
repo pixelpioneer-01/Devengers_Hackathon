@@ -160,8 +160,51 @@ export function getNavigationCommand(text) {
 }
 
 // ============================
-// TTS Stubs (removed by design)
+// Text-to-Speech (TTS) using Sarvam AI
 // ============================
-export function speak() {}
-export function stopSpeaking() {}
-export function unlockAudio() {}
+let currentAudio = null;
+
+export async function speak(text, lang = 'en-IN') {
+  try {
+    if (currentAudio) {
+      currentAudio.pause();
+      currentAudio = null;
+    }
+
+    // Call our serverless API
+    const response = await fetch('/api/speak', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        text,
+        language: lang,
+        sarvamKey: import.meta.env.VITE_SARVAM_API_KEY
+      }),
+    });
+
+    if (!response.ok) {
+      throw new Error('TTS Gateway request failed');
+    }
+
+    const data = await response.json();
+    const base64Audio = data.audio;
+    
+    currentAudio = new Audio('data:audio/wav;base64,' + base64Audio);
+    currentAudio.play();
+  } catch (err) {
+    console.error('[TTS] speak failed:', err);
+  }
+}
+
+export function stopSpeaking() {
+  if (currentAudio) {
+    currentAudio.pause();
+    currentAudio = null;
+  }
+}
+
+export function unlockAudio() {
+  // Web Audio Context unlock helper if needed
+}

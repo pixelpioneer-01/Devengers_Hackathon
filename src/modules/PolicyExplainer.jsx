@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { callAI } from '../claudeAPI';
 import { POLICY_EXPLAINER_PROMPT } from '../prompts';
 import { getWikipediaSummary } from '../wikiAPI';
-import { startRecording, stopRecording } from '../voiceHelper';
+import { startRecording, stopRecording, speak, stopSpeaking } from '../voiceHelper';
 import {
   Search, GraduationCap, Users, Briefcase, Baby, Calendar,
   Info, FileText, ShieldAlert, ArrowRight, CheckCircle, Mic, Sparkles
@@ -176,7 +176,7 @@ export default function PolicyExplainer({ apiKey, language, showToast }) {
             )}
 
             <div className="premium-card">
-              <div className="bg-[#1B3A4B] -mx-10 -mt-10 p-10 mb-10 flex justify-between items-center text-white">
+              <div className="bg-[#1B3A4B] -mx-10 -mt-10 p-10 mb-10 flex flex-wrap justify-between items-center text-white gap-6">
                 <div>
                   <span className="text-xs font-black uppercase tracking-widest text-[#C8A84B]">
                     {t('modules.policy.reportLabel')}
@@ -185,12 +185,26 @@ export default function PolicyExplainer({ apiKey, language, showToast }) {
                     {input.split('\n')[0].slice(0, 60)}{input.length > 60 ? '...' : ''}
                   </h3>
                 </div>
-                <div className="hidden md:flex flex-col items-end">
-                  <span className="text-[10px] font-black uppercase text-white/50 mb-2">
-                    {t('modules.policy.auditLabel')}
-                  </span>
-                  <div className="px-3 py-1 bg-white/10 rounded-full border border-white/20 text-xs font-black">
-                    98% {t('modules.policy.neutrality')}
+                <div className="flex items-center gap-4">
+                  <button
+                    onClick={() => speak(result.replace(/#/g, '').replace(/\*/g, ''), language)}
+                    className="px-4 py-2 bg-[#C8A84B] text-[#1B3A4B] font-black uppercase tracking-widest text-xs rounded-xl flex items-center gap-2 hover:bg-white hover:text-[#1B3A4B] transition-all"
+                  >
+                    🔊 Read Out Loud
+                  </button>
+                  <button
+                    onClick={stopSpeaking}
+                    className="px-4 py-2 bg-white/10 text-white font-black uppercase tracking-widest text-xs rounded-xl flex items-center gap-2 hover:bg-white/20 transition-all"
+                  >
+                    ⏹️ Stop
+                  </button>
+                  <div className="hidden md:flex flex-col items-end">
+                    <span className="text-[10px] font-black uppercase text-white/50 mb-2">
+                      {t('modules.policy.auditLabel')}
+                    </span>
+                    <div className="px-3 py-1 bg-white/10 rounded-full border border-white/20 text-xs font-black">
+                      98% {t('modules.policy.neutrality')}
+                    </div>
                   </div>
                 </div>
               </div>
