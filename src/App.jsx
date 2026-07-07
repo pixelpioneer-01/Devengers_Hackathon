@@ -204,7 +204,7 @@ export default function App() {
                     <span className="font-black text-base italic">{t(item.translationKey)}</span>
                   </button>
                 ))}
-              </div>
+              </nav>
             </motion.div>
           </>
         )}
