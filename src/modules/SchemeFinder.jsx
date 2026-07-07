@@ -1,8 +1,9 @@
 import { useState, useRef, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { callAI } from '../claudeAPI';
+import { firecrawlSearch } from '../firecrawlHelper';
 import { startRecording, stopRecording } from '../voiceHelper';
-import { Search, Filter, ArrowRight, ExternalLink, ShieldCheck, Zap, Info, MessageSquare, Briefcase, Home, Heart, Sprout, GraduationCap, Coins, Milestone, Flame, Mic, RefreshCw } from 'lucide-react';
+import { Search, Filter, ArrowRight, ExternalLink, ShieldCheck, Zap, Info, MessageSquare, Briefcase, Home, Heart, Sprout, GraduationCap, Coins, Milestone, Flame, Mic, RefreshCw, Wifi } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 const SCHEMES = [
@@ -58,7 +59,25 @@ export default function SchemeFinder({ apiKey, language, showToast }) {
     setMessages(prev => [...prev, { role: 'user', content: q }]);
     setLoading(true);
     try {
-      const response = await callAI(SCHEME_PROMPT, q, apiKey, language);
+      // Fetch live web context from Firecrawl for the query
+      let webContext = '';
+      try {
+        const schemeQuery = `India government scheme ${q} eligibility benefits apply site:india.gov.in OR site:myscheme.gov.in OR site:pmindia.gov.in`;
+        const webResults = await firecrawlSearch(schemeQuery, 4);
+        if (webResults.length > 0) {
+          webContext = webResults
+            .map(r => `Source: ${r.title}\nURL: ${r.url}\n${r.description || r.content?.slice(0, 500) || ''}`)
+            .join('\n---\n');
+        }
+      } catch (webErr) {
+        console.warn('[Firecrawl] Scheme search error (non-fatal):', webErr.message);
+      }
+
+      const augmentedPrompt = webContext
+        ? `${SCHEME_PROMPT}\n\n## LIVE WEB DATA (use this for factual accuracy):\n${webContext}`
+        : SCHEME_PROMPT;
+
+      const response = await callAI(augmentedPrompt, q, apiKey, language);
       setMessages(prev => [...prev, { role: 'assistant', content: response }]);
     } catch (err) {
       showToast(err.message, 'error');

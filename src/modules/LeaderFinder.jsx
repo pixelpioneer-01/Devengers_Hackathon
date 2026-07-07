@@ -3,8 +3,9 @@ import { useTranslation } from 'react-i18next';
 import { callAI } from '../claudeAPI';
 import { LEADER_COMPARISON_PROMPT } from '../prompts';
 import { detectLocation, getConstituency, searchLeaderOnWikipedia } from '../locationHelper';
+import { firecrawlSearch } from '../firecrawlHelper';
 import { startRecording, stopRecording } from '../voiceHelper';
-import { MapPin, Search, Users, ShieldCheck, Zap, Info, Mic, ArrowRight, ExternalLink, Sparkles, Globe, RefreshCw, MessageSquare } from 'lucide-react';
+import { MapPin, Search, Users, ShieldCheck, Zap, Info, Mic, ArrowRight, ExternalLink, Sparkles, Globe, RefreshCw, MessageSquare, Wifi } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 const COMPARISON_PROMPT = `Compare these leaders in large-print format. Use ## for headers. Focus on facts.`;
@@ -21,6 +22,7 @@ export default function LeaderFinder({ apiKey, language, showToast }) {
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
   const [listening, setListening] = useState(false);
+  const [webDataStatus, setWebDataStatus] = useState(''); // 'loading' | 'success' | 'fallback'
   const chatEndRef = useRef(null);
 
   useEffect(() => {
@@ -38,20 +40,56 @@ export default function LeaderFinder({ apiKey, language, showToast }) {
       const loc = await getConstituency(coords.lat, coords.lng);
       setConstituency(loc);
       const districtName = loc.district || loc.city || '';
-      
-      const searchQueries = [
-        { query: `"${districtName}" MLA assembly constituency ${loc.state}`, role: 'MLA (State Legislator)', limit: 2 },
-        { query: `"${districtName}" MP Lok Sabha constituency ${loc.state}`, role: 'MP (Lok Sabha)', limit: 2 }
-      ];
+      const stateName = loc.state || '';
 
-      const searchResults = await Promise.all(searchQueries.map(s => searchLeaderOnWikipedia(s.query, s.limit)));
-      const allFound = [];
-      searchResults.forEach((group, i) => {
-        group.forEach(leader => allFound.push({ ...leader, role: searchQueries[i].role }));
-      });
-      
+      // Step 1: Try Firecrawl live web search first (most up-to-date)
+      let allFound = [];
+      setWebDataStatus('loading');
+      try {
+        const [mlaResults, mpResults] = await Promise.all([
+          firecrawlSearch(`${districtName} MLA current 2024 legislator ${stateName} India`, 3),
+          firecrawlSearch(`${districtName} MP Lok Sabha 2024 member parliament ${stateName} India`, 3),
+        ]);
+
+        const parseWebLeaders = (results, role) =>
+          results.slice(0, 2).filter(r => r.title && r.description).map(r => ({
+            name: r.title.replace(/ - Wikipedia.*/, '').replace(/\|.*/, '').trim(),
+            role,
+            summary: r.description || r.content?.slice(0, 300) || '',
+            url: r.url,
+            source: 'Firecrawl Web',
+          }));
+
+        const webLeaders = [
+          ...parseWebLeaders(mlaResults, 'MLA (State Legislator)'),
+          ...parseWebLeaders(mpResults, 'MP (Lok Sabha)'),
+        ];
+
+        if (webLeaders.length > 0) {
+          allFound = webLeaders;
+          setWebDataStatus('success');
+          showToast(`Live web data fetched for ${districtName} leaders!`, 'success');
+        }
+      } catch (webErr) {
+        console.warn('[Firecrawl] Leader web search failed, falling back to Wikipedia:', webErr.message);
+        setWebDataStatus('fallback');
+      }
+
+      // Step 2: Fallback to Wikipedia if Firecrawl returned nothing
+      if (allFound.length === 0) {
+        setWebDataStatus('fallback');
+        const searchQueries = [
+          { query: `"${districtName}" MLA assembly constituency ${stateName}`, role: 'MLA (State Legislator)', limit: 2 },
+          { query: `"${districtName}" MP Lok Sabha constituency ${stateName}`, role: 'MP (Lok Sabha)', limit: 2 },
+        ];
+        const searchResults = await Promise.all(searchQueries.map(s => searchLeaderOnWikipedia(s.query, s.limit)));
+        searchResults.forEach((group, i) => {
+          group.forEach(leader => allFound.push({ ...leader, role: searchQueries[i].role }));
+        });
+      }
+
       setLeaders(allFound);
-      if (allFound.length >= 2 && apiKey) {
+      if (allFound.length >= 1 && apiKey) {
         setComparisonLoading(true);
         const context = allFound.map((l, i) => `Leader ${i+1}: ${l.name}, Role: ${l.role}, Summary: ${l.summary}`).join('\n\n');
         const result = await callAI(COMPARISON_PROMPT, context, apiKey, language);
