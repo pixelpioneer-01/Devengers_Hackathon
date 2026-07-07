@@ -1,0 +1,497 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Case Filing — Step 1 of 3</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --purple:       #534AB7;
+      --purple-dark:  #4239a0;
+      --purple-bg:    #eeecfb;
+      --purple-icon:  #dbd8f6;
+      --border:       #e2e2e9;
+      --border-hover: #c4c2d8;
+      --bg-page:      #f4f4f7;
+      --bg-card:      #ffffff;
+      --icon-bg:      #f0f0f3;
+      --text-primary: #1a1a2e;
+      --text-sub:     #6b6b80;
+      --text-muted:   #9898a8;
+      --label-color:  #a0a0b0;
+    }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      background: var(--bg-page);
+      min-height: 100vh;
+      display: flex;
+      align-items: flex-start;
+      justify-content: center;
+      padding: 48px 16px 80px;
+      color: var(--text-primary);
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* ── Card wrapper ──────────────────────────────── */
+    .card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      width: 100%;
+      max-width: 680px;
+      padding: 32px 36px 36px;
+    }
+
+    /* ── Header ────────────────────────────────────── */
+    .header {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 10px;
+    }
+    .header-left {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .header-icon {
+      width: 34px;
+      height: 34px;
+      background: var(--icon-bg);
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 17px;
+      flex-shrink: 0;
+    }
+    .header-title {
+      font-size: 18px;
+      font-weight: 700;
+      letter-spacing: -0.3px;
+      color: var(--text-primary);
+    }
+    .step-badge {
+      background: var(--purple-bg);
+      color: var(--purple);
+      font-size: 11px;
+      font-weight: 600;
+      padding: 4px 10px;
+      border-radius: 20px;
+      white-space: nowrap;
+      letter-spacing: 0.2px;
+      flex-shrink: 0;
+      margin-top: 3px;
+    }
+    .header-sub {
+      font-size: 13px;
+      color: var(--text-muted);
+      margin-top: 6px;
+      line-height: 1.5;
+    }
+    .divider {
+      height: 1px;
+      background: var(--border);
+      margin: 20px 0 26px;
+    }
+
+    /* ── Section label ─────────────────────────────── */
+    .section-label {
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      color: var(--label-color);
+      margin-bottom: 12px;
+    }
+
+    /* ── Card grid ─────────────────────────────────── */
+    .card-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-bottom: 28px;
+    }
+    .card-grid.resolution-grid {
+      margin-bottom: 28px;
+    }
+
+    /* ── Selectable card ───────────────────────────── */
+    .sel-card {
+      display: flex;
+      align-items: flex-start;
+      gap: 11px;
+      padding: 13px 14px;
+      border: 1.5px solid var(--border);
+      border-radius: 10px;
+      cursor: pointer;
+      background: #fff;
+      transition: border-color 0.15s, background 0.15s;
+      user-select: none;
+      position: relative;
+    }
+    .sel-card:hover {
+      border-color: var(--border-hover);
+      background: #fafafa;
+    }
+    .sel-card.selected {
+      border-color: var(--purple);
+      background: var(--purple-bg);
+    }
+    .sel-card.full-width {
+      grid-column: 1 / -1;
+    }
+
+    /* icon container */
+    .sel-card .icon-box {
+      width: 34px;
+      height: 34px;
+      min-width: 34px;
+      background: var(--icon-bg);
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 16px;
+      transition: background 0.15s;
+      flex-shrink: 0;
+    }
+    .sel-card.selected .icon-box {
+      background: var(--purple-icon);
+    }
+
+    /* card text */
+    .sel-card .card-text {
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+      min-width: 0;
+    }
+    .sel-card .card-title {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text-primary);
+      line-height: 1.3;
+    }
+    .sel-card .card-sub {
+      font-size: 11px;
+      color: var(--text-sub);
+      line-height: 1.45;
+    }
+    .sel-card.selected .card-title {
+      color: var(--purple);
+    }
+    .sel-card.selected .card-sub {
+      color: #7a74c4;
+    }
+
+    /* selected checkmark dot */
+    .sel-card::after {
+      content: '';
+      position: absolute;
+      top: 9px;
+      right: 10px;
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--purple);
+      opacity: 0;
+      transition: opacity 0.15s;
+    }
+    .sel-card.selected::after {
+      opacity: 1;
+    }
+
+    /* ── Party names ────────────────────────────────── */
+    .party-names-section {
+      margin-bottom: 28px;
+    }
+    .party-label-row {
+      display: flex;
+      align-items: baseline;
+      gap: 6px;
+      margin-bottom: 12px;
+    }
+    .party-optional {
+      font-size: 11px;
+      color: var(--text-muted);
+      font-weight: 400;
+    }
+    .party-inputs {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+    .party-input {
+      width: 100%;
+      padding: 11px 14px;
+      border: 1.5px solid var(--border);
+      border-radius: 9px;
+      font-family: 'Inter', sans-serif;
+      font-size: 13px;
+      color: var(--text-primary);
+      background: #fff;
+      outline: none;
+      transition: border-color 0.15s, box-shadow 0.15s;
+    }
+    .party-input::placeholder {
+      color: var(--text-muted);
+      font-size: 13px;
+    }
+    .party-input:focus {
+      border-color: var(--purple);
+      box-shadow: 0 0 0 3px rgba(83,74,183,0.1);
+    }
+
+    /* ── CTA Button ─────────────────────────────────── */
+    .cta-btn {
+      width: 100%;
+      padding: 14px;
+      background: var(--purple);
+      color: #fff;
+      border: none;
+      border-radius: 10px;
+      font-family: 'Inter', sans-serif;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      letter-spacing: 0.1px;
+      transition: background 0.15s, transform 0.1s;
+    }
+    .cta-btn:hover {
+      background: var(--purple-dark);
+    }
+    .cta-btn:active {
+      transform: scale(0.985);
+    }
+    .cta-btn:disabled {
+      background: #c5c3e8;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    /* ── Progress dots ──────────────────────────────── */
+    .progress-dots {
+      display: flex;
+      justify-content: center;
+      gap: 6px;
+      margin-top: 24px;
+    }
+    .dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--border);
+      transition: background 0.2s, width 0.2s;
+    }
+    .dot.active {
+      background: var(--purple);
+      width: 20px;
+      border-radius: 3px;
+    }
+
+    @media (max-width: 520px) {
+      .card { padding: 24px 20px 28px; }
+      .card-grid, .party-inputs { grid-template-columns: 1fr; }
+      .sel-card.full-width { grid-column: 1; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="card">
+
+  <!-- ── Header ──────────────────────────── -->
+  <div class="header">
+    <div>
+      <div class="header-left">
+        <div class="header-icon">⚖️</div>
+        <span class="header-title">Case filing</span>
+      </div>
+      <p class="header-sub">Select a dispute category and resolution mode to continue</p>
+    </div>
+    <div class="step-badge">Step 1 of 3</div>
+  </div>
+
+  <div class="divider"></div>
+
+  <!-- ── Section 1: Dispute category ────── -->
+  <p class="section-label">Dispute category</p>
+
+  <div class="card-grid" id="category-grid">
+
+    <div class="sel-card" data-group="category" data-val="consumer" onclick="selectCard(this)">
+      <div class="icon-box">🛒</div>
+      <div class="card-text">
+        <span class="card-title">Consumer dispute</span>
+        <span class="card-sub">Refunds, service issues, product defects</span>
+      </div>
+    </div>
+
+    <div class="sel-card" data-group="category" data-val="financial" onclick="selectCard(this)">
+      <div class="icon-box">💰</div>
+      <div class="card-text">
+        <span class="card-title">Financial dispute</span>
+        <span class="card-sub">Loans, payments, equity splits</span>
+      </div>
+    </div>
+
+    <div class="sel-card" data-group="category" data-val="relationship" onclick="selectCard(this)">
+      <div class="icon-box">🤝</div>
+      <div class="card-text">
+        <span class="card-title">Relationship / community</span>
+        <span class="card-sub">Roommates, neighbors, community conflicts</span>
+      </div>
+    </div>
+
+    <div class="sel-card" data-group="category" data-val="workplace" onclick="selectCard(this)">
+      <div class="icon-box">💼</div>
+      <div class="card-text">
+        <span class="card-title">Workplace dispute</span>
+        <span class="card-sub">Employer–employee, harassment, reviews</span>
+      </div>
+    </div>
+
+    <div class="sel-card" data-group="category" data-val="property" onclick="selectCard(this)">
+      <div class="icon-box">🏠</div>
+      <div class="card-text">
+        <span class="card-title">Property dispute</span>
+        <span class="card-sub">Rent deposits, shared spaces, boundaries</span>
+      </div>
+    </div>
+
+    <div class="sel-card" data-group="category" data-val="other" onclick="selectCard(this)">
+      <div class="icon-box">📋</div>
+      <div class="card-text">
+        <span class="card-title">Other</span>
+        <span class="card-sub">Any other type of dispute</span>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ── Section 2: Resolution mode ─────── -->
+  <p class="section-label">Resolution mode</p>
+
+  <div class="card-grid resolution-grid" id="mode-grid">
+
+    <div class="sel-card" data-group="mode" data-val="conciliation" onclick="selectCard(this)">
+      <div class="icon-box">🤲</div>
+      <div class="card-text">
+        <span class="card-title">Conciliation</span>
+        <span class="card-sub">AI proposes a concrete solution</span>
+      </div>
+    </div>
+
+    <div class="sel-card" data-group="mode" data-val="mediation" onclick="selectCard(this)">
+      <div class="icon-box">⚖️</div>
+      <div class="card-text">
+        <span class="card-title">Mediation</span>
+        <span class="card-sub">AI facilitates — parties decide</span>
+      </div>
+    </div>
+
+    <div class="sel-card" data-group="mode" data-val="arbitration" onclick="selectCard(this)">
+      <div class="icon-box">🏛</div>
+      <div class="card-text">
+        <span class="card-title">Arbitration</span>
+        <span class="card-sub">AI hears both sides, issues an award</span>
+      </div>
+    </div>
+
+    <div class="sel-card" data-group="mode" data-val="medarb" onclick="selectCard(this)">
+      <div class="icon-box">🔄</div>
+      <div class="card-text">
+        <span class="card-title">Med-Arb</span>
+        <span class="card-sub">Mediation first, arbitration if needed</span>
+      </div>
+    </div>
+
+    <div class="sel-card full-width" data-group="mode" data-val="lokadalat" onclick="selectCard(this)">
+      <div class="icon-box">🕊</div>
+      <div class="card-text">
+        <span class="card-title">Lok Adalat</span>
+        <span class="card-sub">Quick, dignified compromise — traditional Indian community settlement</span>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ── Section 3: Party names ─────────── -->
+  <div class="party-names-section">
+    <div class="party-label-row">
+      <p class="section-label" style="margin-bottom:0">Party names</p>
+      <span class="party-optional">(optional)</span>
+    </div>
+    <div class="party-inputs">
+      <input class="party-input" id="partyA" type="text" placeholder="Party A name" />
+      <input class="party-input" id="partyB" type="text" placeholder="Party B name" />
+    </div>
+  </div>
+
+  <!-- ── CTA ────────────────────────────── -->
+  <button class="cta-btn" id="cta-btn" disabled onclick="proceed()">
+    Proceed to pre-session →
+  </button>
+
+  <!-- ── Step dots ──────────────────────── -->
+  <div class="progress-dots">
+    <div class="dot active"></div>
+    <div class="dot"></div>
+    <div class="dot"></div>
+  </div>
+
+</div>
+
+<script>
+  const state = { category: null, mode: null };
+
+  function selectCard(el) {
+    const group = el.dataset.group;
+    const val   = el.dataset.val;
+
+    // deselect siblings
+    document.querySelectorAll(`.sel-card[data-group="${group}"]`).forEach(c => c.classList.remove('selected'));
+
+    // select this one
+    el.classList.add('selected');
+    state[group] = val;
+
+    // auto-suggest mode based on category
+    if (group === 'category' && !state.mode) {
+      const suggested = { consumer:'conciliation', financial:'arbitration', relationship:'mediation', workplace:'medarb', property:'arbitration', other:'mediation' };
+      const suggestedMode = suggested[val];
+      if (suggestedMode) {
+        const modeCard = document.querySelector(`.sel-card[data-group="mode"][data-val="${suggestedMode}"]`);
+        if (modeCard) {
+          document.querySelectorAll('.sel-card[data-group="mode"]').forEach(c => c.classList.remove('selected'));
+          modeCard.classList.add('selected');
+          state.mode = suggestedMode;
+        }
+      }
+    }
+
+    updateCTA();
+  }
+
+  function updateCTA() {
+    const btn = document.getElementById('cta-btn');
+    btn.disabled = !(state.category && state.mode);
+  }
+
+  function proceed() {
+    if (!state.category || !state.mode) return;
+    const pA = document.getElementById('partyA').value.trim() || 'Party A';
+    const pB = document.getElementById('partyB').value.trim() || 'Party B';
+    alert(`✅ Proceeding to Step 2\n\nCategory: ${state.category}\nMode: ${state.mode}\nParty A: ${pA}\nParty B: ${pB}`);
+  }
+</script>
+</body>
+</html>
