@@ -174,7 +174,6 @@ export default function App() {
               </button>
             ))}
           </div>
-          <button className="hidden sm:block text-xs font-black uppercase tracking-widest text-[#1B3A4B] border-2 border-[#1B3A4B] px-6 py-3 hover:bg-[#1B3A4B] hover:text-white transition-all rounded-lg">Sign In</button>
         </div>
       </header>
 
