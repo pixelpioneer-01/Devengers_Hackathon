@@ -34,12 +34,12 @@ export async function startRecording(lang = 'en-IN') {
 }
 
 /**
- * Stop recording and transcribe audio using OpenAI Whisper.
+ * Stop recording and transcribe audio using Sarvam AI STT.
  *
  * @param {function} onResult   - called with the transcribed text string
  * @param {function} onEnd      - called on completion or error
  * @param {string}   lang       - BCP-47 language code
- * @param {string}   apiKey     - OpenAI API key fallback
+ * @param {string}   apiKey     - Sarvam AI API key fallback
  */
 export async function stopRecording(onResult, onEnd, lang = 'en-IN', apiKey) {
   if (!mediaRecorder) return;
@@ -51,11 +51,11 @@ export async function stopRecording(onResult, onEnd, lang = 'en-IN', apiKey) {
     let transcript = null;
 
     try {
-      console.log('[STT] Trying OpenAI Whisper STT...');
-      transcript = await callOpenAIWhisper(audioBlob, lang, apiKey);
-      console.log(`[STT] OpenAI Transcribed: "${transcript}"`);
+      console.log('[STT] Trying Sarvam AI STT...');
+      transcript = await callSarvamSTT(audioBlob, lang, apiKey);
+      console.log(`[STT] Sarvam Transcribed: "${transcript}"`);
     } catch (err) {
-      console.error('[STT] OpenAI Whisper failed:', err.message);
+      console.error('[STT] Sarvam STT failed:', err.message);
       if (onEnd) onEnd(err.message || 'transcription-failed');
       // Clean up and exit
       mediaRecorder?.stream.getTracks().forEach(track => track.stop());
@@ -78,61 +78,86 @@ export async function stopRecording(onResult, onEnd, lang = 'en-IN', apiKey) {
 }
 
 // ============================
-// OpenAI Whisper STT
+// Sarvam AI STT
 // ============================
-async function callOpenAIWhisper(blob, lang, apiKey) {
-  const envKey = import.meta.env.VITE_OPENAI_API_KEY || '';
-  const keyToUse = apiKey || envKey;
-  if (!keyToUse) throw new Error('OpenAI API key missing');
+async function callSarvamSTT(blob, lang, apiKey) {
+  const sarvamKey = import.meta.env.VITE_SARVAM_API_KEY || '';
+  const keyToUse = apiKey || sarvamKey;
+
+  // Convert blob to base64 to send in JSON body
+  const base64Audio = await blobToBase64(blob);
+
+  // Normalize language code to BCP-47
+  let langCode = lang;
+  if (lang === 'hi') langCode = 'hi-IN';
+  if (lang === 'en') langCode = 'en-IN';
+
+  // 1. First, try calling the serverless API gateway (best for production/CORS safety)
+  try {
+    const response = await fetch("/api/transcribe", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        audio: base64Audio,
+        languageCode: langCode,
+        sarvamKey: keyToUse
+      }),
+    });
+
+    if (response.ok) {
+      const data = await response.json();
+      return data.transcript;
+    }
+    
+    if (response.status !== 404) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData?.error || `Server Error: ${response.status}`);
+    }
+  } catch (err) {
+    if (err.message && !err.message.includes("404") && !err.message.includes("Failed to fetch")) {
+      throw err;
+    }
+  }
+
+  // 2. Client-side fallback if serverless function not detected (e.g. running locally under npm run dev)
+  console.warn("Vercel STT serverless function not detected. Falling back to direct client-side call.");
+  if (!keyToUse) throw new Error('Sarvam API key missing');
 
   const formData = new FormData();
   formData.append('file', blob, 'recording.webm');
-  formData.append('model', 'whisper-1');
-  formData.append('language', lang.split('-')[0]); // e.g. 'hi', 'en'
-  formData.append('response_format', 'json');
+  formData.append('model', 'saaras:v3');
+  formData.append('language_code', langCode);
 
-  const response = await fetch('https://api.openai.com/v1/audio/transcriptions', {
+  const response = await fetch('https://api.sarvam.ai/speech-to-text', {
     method: 'POST',
-    headers: { 'Authorization': `Bearer ${keyToUse}` },
+    headers: { 'api-subscription-key': keyToUse },
     body: formData,
   });
 
   if (!response.ok) {
     const errData = await response.json().catch(() => ({}));
-    throw new Error(errData?.error?.message || `OpenAI Whisper Error: ${response.status}`);
+    throw new Error(errData?.message || `Sarvam STT Error: ${response.status}`);
   }
 
   const data = await response.json();
-  return data.text;
+  return data.transcript;
 }
 
 // ============================
 // Utility Helpers
 // ============================
-
-/** Convert a Blob to a base64 string (without the data URL prefix) */
 function blobToBase64(blob) {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.onloadend = () => {
-      // Remove "data:audio/webm;base64," prefix
       const base64 = reader.result.split(',')[1];
       resolve(base64);
     };
     reader.onerror = reject;
     reader.readAsDataURL(blob);
   });
-}
-
-/** Map BCP-47 app language codes to Google's supported codes */
-function mapToGoogleLang(lang) {
-  const mapping = {
-    'en-IN': 'en-IN',
-    'hi-IN': 'hi-IN',
-    'en':    'en-IN',
-    'hi':    'hi-IN',
-  };
-  return mapping[lang] || 'en-IN';
 }
 
 // ============================
