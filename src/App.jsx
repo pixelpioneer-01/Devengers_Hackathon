@@ -45,23 +45,21 @@ export default function App() {
   const [toast, setToast] = useState(null);
 
   useEffect(() => {
-    // Show language selection FIRST on new visits
+    // For the hackathon demo, ALWAYS show the language selection modal on refresh!
+    setShowLangSelect(true);
+    
     const savedLang = localStorage.getItem('civicai-language');
-    if (!savedLang) {
-      setShowLangSelect(true);
-    } else {
+    if (savedLang) {
       i18n.changeLanguage(savedLang);
     }
     const hasSeenEthics = localStorage.getItem('civicai-ethics-seen');
-    if (!hasSeenEthics && savedLang) setShowEthics(true);
+    if (!hasSeenEthics) setShowEthics(true);
   }, []);
 
   const handleLanguageSelect = (lang) => {
     i18n.changeLanguage(lang.code);
     localStorage.setItem('civicai-language', lang.code);
     setShowLangSelect(false);
-    const hasSeenEthics = localStorage.getItem('civicai-ethics-seen');
-    if (!hasSeenEthics) setShowEthics(true);
   };
 
   const handleAcceptEthics = () => {
