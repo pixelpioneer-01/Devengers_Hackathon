@@ -312,7 +312,13 @@ export default function CommunityDiscussion({ apiKey, language, showToast }) {
           messages: [
             {
               role: 'system',
-              content: `You are a strict civic content moderator. Reply with exactly one word: "SAFE" if the message is a genuine civic opinion, complaint, or observation. "UNSAFE" if it contains hate speech, slurs, threats, sexual content, religious incitement, caste slurs, calls to violence, misinformation, or spam. Reply ONLY with "SAFE" or "UNSAFE".`,
+              content: `You are a civic content moderator. Your job is to ONLY block truly harmful content. Be very permissive — most messages should be SAFE.
+
+Reply "SAFE" for: any civic opinion, complaint, feedback, appreciation, question, observation, or general statement — even if it criticizes politicians, government, or policies. Short words like "wow", "great", "hello", "nice" are always SAFE.
+
+Reply "UNSAFE" ONLY if the message clearly contains: explicit hate speech with slurs, direct personal death threats, explicit sexual content, or calls for immediate violence against specific people.
+
+When in doubt, reply SAFE. Reply ONLY with "SAFE" or "UNSAFE".`,
             },
             { role: 'user', content: text.trim() },
           ],
