@@ -109,8 +109,8 @@ export default function App() {
             <span className="hidden sm:inline">An official AI-powered civic platform</span>
             <span className="sm:hidden">Official AI Portal</span>
           </div>
-          <button onClick={() => setIsHowYouKnowOpen(!isHowYouKnowOpen)} className="flex items-center gap-1 text-white/70 hover:text-white">
-            How you know <ChevronDown size={14} className={`transition-transform ${isHowYouKnowOpen ? 'rotate-180' : ''}`} />
+          <button aria-label="Toggle official site info" onClick={() => setIsHowYouKnowOpen(!isHowYouKnowOpen)} className="flex items-center gap-1 text-white/70 hover:text-white">
+            How you know <ChevronDown size={14} aria-hidden="true" className={`transition-transform ${isHowYouKnowOpen ? 'rotate-180' : ''}`} />
           </button>
         </div>
         <div className="flex items-center gap-6">
@@ -157,23 +157,23 @@ export default function App() {
       </div>
 
       {/* HEADER */}
-      <header className="bg-white border-b border-gray-200 py-8 px-6 md:px-12 sticky top-0 z-[90] shadow-sm">
+      <header role="banner" className="bg-white border-b border-gray-200 py-8 px-6 md:px-12 sticky top-0 z-[90] shadow-sm">
         <div className="container mx-auto flex justify-between items-center">
-          <button onClick={() => setSidebarOpen(true)} className="p-3 hover:bg-gray-50 rounded-xl">
-            <Menu size={28} className="text-[#1B3A4B]" />
+          <button aria-label="Open menu" aria-expanded={sidebarOpen} onClick={() => setSidebarOpen(true)} className="p-3 hover:bg-gray-50 rounded-xl">
+            <Menu size={28} aria-hidden="true" className="text-[#1B3A4B]" />
           </button>
-          <div className="flex flex-col items-center cursor-pointer group" onClick={() => handleModuleSwitch('landing')}>
+          <div role="button" tabIndex={0} aria-label="Go to homepage" className="flex flex-col items-center cursor-pointer group" onClick={() => handleModuleSwitch('landing')}>
             <img src="/civicai_gold_dome_logo_icon_1775930578212.png" alt="Logo" className="h-12 w-auto mb-2 group-hover:scale-110 transition-transform" />
             <h1 className="text-3xl font-heading font-black tracking-tighter text-[#1B3A4B]">CivicAI</h1>
           </div>
-          <div className="hidden xl:flex items-center gap-8">
+          <nav aria-label="Main navigation" className="hidden xl:flex items-center gap-8">
             {ALL_MODULES.slice(1).map(item => (
-              <button key={item.id} onClick={() => handleModuleSwitch(item.id)} className={`text-xs font-black uppercase tracking-widest hover:text-[#C8A84B] transition-all relative py-2 ${activeModule === item.id ? 'text-[#C8A84B]' : 'text-[#1B3A4B]'}`}>
+              <button aria-current={activeModule === item.id ? 'page' : undefined} key={item.id} onClick={() => handleModuleSwitch(item.id)} className={`text-xs font-black uppercase tracking-widest hover:text-[#C8A84B] transition-all relative py-2 ${activeModule === item.id ? 'text-[#C8A84B]' : 'text-[#1B3A4B]'}`}>
                 {t(item.translationKey)}
                 {activeModule === item.id && <motion.div layoutId="nav-underline" className="absolute bottom-0 left-0 w-full h-1 bg-[#C8A84B]" />}
               </button>
             ))}
-          </div>
+          </nav>
         </div>
       </header>
 
@@ -188,13 +188,13 @@ export default function App() {
       <AnimatePresence>
         {sidebarOpen && (
           <>
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setSidebarOpen(false)} className="fixed inset-0 bg-[#1B3A4B]/50 backdrop-blur-sm z-[200]" />
-            <motion.div initial={{ x: '-100%' }} animate={{ x: 0 }} exit={{ x: '-100%' }} transition={{ type: 'spring', damping: 25, stiffness: 200 }} className="fixed inset-y-0 left-0 w-96 bg-white z-[210] shadow-2xl flex flex-col p-10">
+            <motion.div aria-hidden="true" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setSidebarOpen(false)} className="fixed inset-0 bg-[#1B3A4B]/50 backdrop-blur-sm z-[200]" />
+            <motion.div role="dialog" aria-modal="true" aria-label="Sidebar menu" initial={{ x: '-100%' }} animate={{ x: 0 }} exit={{ x: '-100%' }} transition={{ type: 'spring', damping: 25, stiffness: 200 }} className="fixed inset-y-0 left-0 w-96 bg-white z-[210] shadow-2xl flex flex-col p-10">
               <div className="flex justify-between items-center mb-12 pb-6 border-b border-gray-100">
                 <span className="text-2xl font-heading font-black text-[#1B3A4B]">CivicAI Services</span>
-                <button onClick={() => setSidebarOpen(false)} className="p-2 hover:bg-gray-100 rounded-full"><X size={28} className="text-gray-400" /></button>
+                <button aria-label="Close menu" onClick={() => setSidebarOpen(false)} className="p-2 hover:bg-gray-100 rounded-full"><X size={28} className="text-gray-400" /></button>
               </div>
-              <div className="space-y-4 flex-grow overflow-y-auto pr-4 custom-scrollbar">
+              <nav aria-label="Sidebar navigation" className="space-y-4 flex-grow overflow-y-auto pr-4 custom-scrollbar">
                 <p className="text-[11px] uppercase font-black text-gray-400 tracking-widest mb-6">Explore Civic Tools</p>
                 {ALL_MODULES.map(item => (
                   <button key={item.id} onClick={() => handleModuleSwitch(item.id)} className={`w-full flex items-center gap-5 p-5 rounded-xl transition-all ${activeModule === item.id ? 'bg-[#1B3A4B] text-white shadow-xl' : 'hover:bg-gray-50 text-gray-600'}`}>
