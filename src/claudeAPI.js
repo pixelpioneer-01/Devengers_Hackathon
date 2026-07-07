@@ -63,34 +63,34 @@ export async function callAI(systemPrompt, userMessage, apiKey, language = 'en-I
     }
 
     if (provider === "anthropic") {
-      const keyToUse = anthropicKey || apiKey;
+      const keyToUse = openAIKey || apiKey;
       if (!keyToUse) {
-        throw new Error("Anthropic API key is required. Please set VITE_ANTHROPIC_API_KEY in your .env file.");
+        throw new Error("OpenAI API key is required. Please set VITE_OPENAI_API_KEY in your .env file.");
       }
 
-      const response = await fetch("https://api.anthropic.com/v1/messages", {
+      const response = await fetch("https://api.openai.com/v1/chat/completions", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          "x-api-key": keyToUse,
-          "anthropic-version": "2023-06-01",
-          "dangerouslyAllowBrowser": "true"
+          "Authorization": `Bearer ${keyToUse}`,
         },
         body: JSON.stringify({
-          model: "claude-3-5-sonnet-20241022",
+          model: "gpt-4o",
           max_tokens: 1500,
-          system: finalSystemPrompt,
-          messages: [{ role: "user", content: userMessage }],
+          messages: [
+            { role: "system", content: finalSystemPrompt },
+            { role: "user", content: userMessage }
+          ],
         }),
       });
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData?.error?.message || `Anthropic API Error: ${response.status}`);
+        throw new Error(errorData?.error?.message || `OpenAI API Error (GPT-4o): ${response.status}`);
       }
 
       const data = await response.json();
-      aiContent = data.content[0].text;
+      aiContent = data.choices[0].message.content;
 
     } else {
       const keyToUse = openAIKey || apiKey;

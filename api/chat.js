@@ -33,68 +33,38 @@ export default async function handler(req, res) {
   }
 
   try {
-    if (provider === "anthropic") {
-      const apiKey = process.env.VITE_ANTHROPIC_API_KEY || process.env.ANTHROPIC_API_KEY || anthropicKey;
-      if (!apiKey) {
-        return res.status(500).json({ error: "Anthropic API Key not configured." });
-      }
-
-      const response = await fetch("https://api.anthropic.com/v1/messages", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "x-api-key": apiKey,
-          "anthropic-version": "2023-06-01",
-        },
-        body: JSON.stringify({
-          model: "claude-3-5-sonnet-20241022",
-          max_tokens: 1500,
-          system: finalSystemPrompt,
-          messages: [{ role: "user", content: userMessage }],
-        }),
-      });
-
-      if (!response.ok) {
-        const err = await response.json().catch(() => ({}));
-        return res.status(response.status).json({ error: err.error?.message || "Anthropic API Error" });
-      }
-
-      const data = await response.json();
-      return res.status(200).json({ content: data.content[0].text });
-
-    } else if (provider === "openai") {
-      const apiKey = process.env.VITE_OPENAI_API_KEY || process.env.OPENAI_API_KEY || openAIKey;
-      if (!apiKey) {
-        return res.status(500).json({ error: "OpenAI API Key not configured." });
-      }
-
-      const response = await fetch("https://api.openai.com/v1/chat/completions", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${apiKey}`,
-        },
-        body: JSON.stringify({
-          model: "gpt-4o-mini",
-          max_tokens: 1500,
-          messages: [
-            { role: "system", content: finalSystemPrompt },
-            { role: "user", content: userMessage },
-          ],
-        }),
-      });
-
-      if (!response.ok) {
-        const err = await response.json().catch(() => ({}));
-        return res.status(response.status).json({ error: err.error?.message || "OpenAI API Error" });
-      }
-
-      const data = await response.json();
-      return res.status(200).json({ content: data.choices[0].message.content });
-
-    } else {
-      return res.status(400).json({ error: `Invalid provider: ${provider}` });
+    const apiKey = process.env.VITE_OPENAI_API_KEY || process.env.OPENAI_API_KEY || openAIKey;
+    if (!apiKey) {
+      return res.status(500).json({ error: "OpenAI API Key not configured." });
     }
+
+    // Route anthropic requests to gpt-4o (tough tasks) and openai requests to gpt-4o-mini (standard tasks)
+    const model = provider === "anthropic" ? "gpt-4o" : "gpt-4o-mini";
+
+    const response = await fetch("https://api.openai.com/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${apiKey}`,
+      },
+      body: JSON.stringify({
+        model: model,
+        max_tokens: 1500,
+        messages: [
+          { role: "system", content: finalSystemPrompt },
+          { role: "user", content: userMessage },
+        ],
+      }),
+    });
+
+    if (!response.ok) {
+      const err = await response.json().catch(() => ({}));
+      return res.status(response.status).json({ error: err.error?.message || "OpenAI API Error" });
+    }
+
+    const data = await response.json();
+    return res.status(200).json({ content: data.choices[0].message.content });
+
   } catch (error) {
     console.error("API Gateway error:", error);
     return res.status(500).json({ error: error.message || "Internal Server Error" });
