@@ -293,38 +293,57 @@ export default function CommunityDiscussion({ apiKey, language, showToast }) {
     window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(tweetText)}`, '_blank');
   };
 
+
   const [tweeting, setTweeting] = useState(false);
   const postToCivicAIX = async (text) => {
     if (!text.trim()) return;
-    // Trim to 250 chars to leave room for hashtag
-    const trimmedText = text.trim().slice(0, 230);
-    const tweetText = `${trimmedText}\n\n${selectedHashtag || '#CivicAI'} #AnonymousCivicVoice`;
     setTweeting(true);
     try {
-      const res = await fetch('/api/tweet', {
+      // Step 1: Run AI moderation check (OpenAI)
+      const moderationRes = await fetch('https://api.openai.com/v1/chat/completions', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${import.meta.env.VITE_OPENAI_API_KEY}`,
+        },
         body: JSON.stringify({
-          text: tweetText,
-          openAIKey: import.meta.env.VITE_OPENAI_API_KEY
+          model: 'gpt-4o-mini',
+          max_tokens: 10,
+          messages: [
+            {
+              role: 'system',
+              content: `You are a strict civic content moderator. Reply with exactly one word: "SAFE" if the message is a genuine civic opinion, complaint, or observation. "UNSAFE" if it contains hate speech, slurs, threats, sexual content, religious incitement, caste slurs, calls to violence, misinformation, or spam. Reply ONLY with "SAFE" or "UNSAFE".`,
+            },
+            { role: 'user', content: text.trim() },
+          ],
         }),
       });
-      const data = await res.json();
-      if (!res.ok) {
-        if (data.moderated) {
-          showToast('⚠️ Message blocked by AI: contains harmful content. Please revise.', 'error');
-        } else {
-          throw new Error(data.error || 'Failed to post tweet');
-        }
-      } else {
-        showToast('✅ Your anonymous civic voice has been posted on X via @CivicAI!', 'success');
-        if (data.tweetLink) window.open(data.tweetLink, '_blank');
+
+      if (!moderationRes.ok) throw new Error('AI moderation check failed. Please try again.');
+
+      const modData = await moderationRes.json();
+      const verdict = modData.choices?.[0]?.message?.content?.trim()?.toUpperCase();
+
+      if (verdict !== 'SAFE') {
+        showToast('⚠️ AI blocked your message: it may contain harmful or controversial content. Please revise.', 'error');
+        setTweeting(false);
+        return;
       }
+
+      // Step 2: Message is SAFE — open pre-filled Twitter compose window
+      const trimmedText = text.trim().slice(0, 220);
+      const tweetText = `${trimmedText}\n\n${selectedHashtag || '#CivicAI'} #AnonymousCivicVoice`;
+      showToast('✅ AI approved your message! Opening X to post anonymously...', 'success');
+      setTimeout(() => {
+        window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(tweetText)}`, '_blank');
+      }, 800);
+
     } catch (err) {
-      showToast(err.message, 'error');
+      showToast(err.message || 'Something went wrong. Please try again.', 'error');
     }
     setTweeting(false);
   };
+
 
   const openXSearch = (query) => {
     window.open(`https://twitter.com/search?q=${encodeURIComponent(query)}`, '_blank');
