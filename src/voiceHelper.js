@@ -34,13 +34,12 @@ export async function startRecording(lang = 'en-IN') {
 }
 
 /**
- * Stop recording and transcribe audio.
- * Tries Google STT first; falls back to Groq Whisper if Google fails.
+ * Stop recording and transcribe audio using OpenAI Whisper.
  *
  * @param {function} onResult   - called with the transcribed text string
  * @param {function} onEnd      - called on completion or error
  * @param {string}   lang       - BCP-47 language code
- * @param {string}   apiKey     - Groq API key (used for Whisper fallback)
+ * @param {string}   apiKey     - OpenAI API key fallback
  */
 export async function stopRecording(onResult, onEnd, lang = 'en-IN', apiKey) {
   if (!mediaRecorder) return;
@@ -51,33 +50,18 @@ export async function stopRecording(onResult, onEnd, lang = 'en-IN', apiKey) {
 
     let transcript = null;
 
-    // --- Attempt 1: Google Cloud Speech-to-Text ---
-    const googleKey = import.meta.env.VITE_GOOGLE_API_KEY || '';
-    if (googleKey) {
-      try {
-        console.log('[STT] Trying Google Cloud Speech-to-Text...');
-        transcript = await callGoogleSTT(audioBlob, lang, googleKey);
-        console.log(`[STT] Google Transcribed: "${transcript}"`);
-      } catch (err) {
-        console.warn('[STT] Google STT failed, falling back to Groq Whisper:', err.message);
-      }
-    }
-
-    // --- Attempt 2: Groq Whisper Fallback ---
-    if (!transcript) {
-      try {
-        console.log('[STT] Trying Groq Whisper STT...');
-        transcript = await callWhisper(audioBlob, lang, apiKey);
-        console.log(`[STT] Whisper Transcribed: "${transcript}"`);
-      } catch (err) {
-        console.error('[STT] Groq Whisper also failed:', err.message);
-        if (onEnd) onEnd(err.message || 'transcription-failed');
-        // Clean up and exit
-        mediaRecorder?.stream.getTracks().forEach(track => track.stop());
-        mediaRecorder = null;
-        audioChunks = [];
-        return;
-      }
+    try {
+      console.log('[STT] Trying OpenAI Whisper STT...');
+      transcript = await callOpenAIWhisper(audioBlob, lang, apiKey);
+      console.log(`[STT] OpenAI Transcribed: "${transcript}"`);
+    } catch (err) {
+      console.error('[STT] OpenAI Whisper failed:', err.message);
+      if (onEnd) onEnd(err.message || 'transcription-failed');
+      // Clean up and exit
+      mediaRecorder?.stream.getTracks().forEach(track => track.stop());
+      mediaRecorder = null;
+      audioChunks = [];
+      return;
     }
 
     if (onResult) onResult(transcript);
@@ -94,71 +78,20 @@ export async function stopRecording(onResult, onEnd, lang = 'en-IN', apiKey) {
 }
 
 // ============================
-// Google Cloud Speech-to-Text
-// REST API (no SDK needed)
+// OpenAI Whisper STT
 // ============================
-async function callGoogleSTT(blob, lang, googleKey) {
-  // Convert audio blob → base64
-  const base64Audio = await blobToBase64(blob);
-
-  // Map BCP-47 codes to Google's supported codes
-  const languageCode = mapToGoogleLang(lang);
-
-  const requestBody = {
-    config: {
-      encoding: 'WEBM_OPUS',
-      sampleRateHertz: 48000,
-      languageCode: languageCode,
-      alternativeLanguageCodes: ['hi-IN', 'en-IN'], // allow mixed-language speech
-      enableAutomaticPunctuation: true,
-      model: 'latest_long',
-    },
-    audio: {
-      content: base64Audio,
-    },
-  };
-
-  const response = await fetch(
-    `https://speech.googleapis.com/v1/speech:recognize?key=${googleKey}`,
-    {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(requestBody),
-    }
-  );
-
-  if (!response.ok) {
-    const err = await response.json().catch(() => ({}));
-    throw new Error(err?.error?.message || `Google STT Error: ${response.status}`);
-  }
-
-  const data = await response.json();
-
-  // Extract the best transcript
-  const transcript = data.results
-    ?.map(r => r.alternatives?.[0]?.transcript || '')
-    .join(' ')
-    .trim();
-
-  if (!transcript) throw new Error('Google STT returned empty transcript');
-  return transcript;
-}
-
-// ============================
-// Groq Whisper STT (Fallback)
-// ============================
-async function callWhisper(blob, lang, apiKey) {
-  const envKey = import.meta.env.VITE_API_KEY || '';
+async function callOpenAIWhisper(blob, lang, apiKey) {
+  const envKey = import.meta.env.VITE_OPENAI_API_KEY || '';
   const keyToUse = apiKey || envKey;
-  if (!keyToUse) throw new Error('Groq API key missing');
+  if (!keyToUse) throw new Error('OpenAI API key missing');
 
   const formData = new FormData();
   formData.append('file', blob, 'recording.webm');
-  formData.append('model', 'whisper-large-v3');
+  formData.append('model', 'whisper-1');
   formData.append('language', lang.split('-')[0]); // e.g. 'hi', 'en'
   formData.append('response_format', 'json');
 
-  const response = await fetch('https://api.groq.com/openai/v1/audio/transcriptions', {
+  const response = await fetch('https://api.openai.com/v1/audio/transcriptions', {
     method: 'POST',
     headers: { 'Authorization': `Bearer ${keyToUse}` },
     body: formData,
@@ -166,7 +99,7 @@ async function callWhisper(blob, lang, apiKey) {
 
   if (!response.ok) {
     const errData = await response.json().catch(() => ({}));
-    throw new Error(errData?.error?.message || `Groq Whisper Error: ${response.status}`);
+    throw new Error(errData?.error?.message || `OpenAI Whisper Error: ${response.status}`);
   }
 
   const data = await response.json();
