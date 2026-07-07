@@ -1,114 +1,76 @@
-# 🏛️ CivicAI: AI-Powered Civic Governance Platform
+# CivicAI 🏛️
 
-**Empowering every citizen with transparent, neutral, and fair AI-driven governance tools for a stronger democracy.**
-
-CivicAI is a premium, multilingual platform designed to bridge the gap between citizens and administration. Built for the modern web, it leverages cutting-edge AI to simplify complex civic processes, from finding government schemes to mediating community conflicts.
-
-![CivicAI Logo](public/civicai_gold_dome_logo_icon_1775930578212.png)
-
----
+CivicAI is an official, AI-powered civic platform designed to empower citizens with transparent, neutral, and fair governance tools for a stronger democracy. It bridges the gap between citizens and the government by providing multilingual AI assistance, real-time data on leaders and schemes, anonymous community discussions, and conflict mediation.
 
 ## 🌟 Key Features
 
-### ⚖️ AI Conflict Mediator
-A structured 5-step digital mediation workflow (Intake, Briefing, Submissions, Hearing, Settlement) that helps resolve community and interpersonal disputes. It generates formal settlement documents with PDF download capabilities.
+### 1. Multilingual Support & Accessibility
+- **8 Indian Languages:** Fully supports English, Hindi, Marathi, Bengali, Telugu, Tamil, Kannada, and Gujarati.
+- **Language Selection Modal:** Beautiful welcome screen for first-time users to select their preferred language.
+- **Voice Interactions:** Integrated with **Sarvam AI** for Speech-to-Text (STT) and Text-to-Speech (TTS), allowing users to interact with the platform using their voice in their native language.
 
-### 📋 Scheme Finder
-A personalized search engine for government schemes. It helps citizens discover entitlements and subsidies they are eligible for, filtered by category and demographics.
+### 2. CivicBot (AI Assistant) 🤖
+- A floating AI assistant powered by **OpenAI (GPT-4o-mini)**.
+- Listens to user problems (via text or voice) and automatically navigates them to the correct tool.
+- Supports manual language switching via chat (e.g., *"Speak in Hindi"*).
+- Uses Sarvam AI for natural-sounding voice replies.
 
-### 🗳️ Voter Awareness
-An interactive educational module focused on electoral literacy. It provides information on voting procedures, candidate backgrounds, and the importance of civic participation.
+### 3. Live Web Scraping (Firecrawl API) 🕷️
+- **Nearby Leaders:** Automatically detects the user's location and uses the Firecrawl API to scrape the web for real-time information about their local MLA, MP, and municipal leaders.
+- **Government Schemes:** Uses Firecrawl to pull live, up-to-date information on government subsidies and welfare schemes (like PM-KISAN, PMAY) based on user demographics.
 
-### 🗺️ Leader Finder
-Locate and learn about your local representatives, from municipal councilors to members of parliament.
+### 4. Anonymous Civic Voice (X / Twitter Integration) 🐦
+- Allows citizens to anonymously voice their opinions or complaints on X.
+- **Real-time AI Moderation:** Messages are scanned by OpenAI to ensure they do not contain hate speech, slurs, or violence.
+- **Cost-Free Fallback:** Bypasses X API rate limits and paid tiers by using Twitter Intents to open a pre-filled, moderated compose window.
 
-### 🗣️ Policy Explainer
-Simplifies dense legislative and policy documents into plain, understandable language, making governance accessible to everyone.
-
-### 🤝 Grassroots Organizer & Community Discussion
-Tools for citizens to organize local action, discuss community issues, and collaborate on grass-roots solutions.
-
----
-
-## 🌍 Multilingual by Design
-CivicAI is built to be inclusive, supporting both **English** and **Hindi**. All modules are fully localized, ensuring that language is never a barrier to civic engagement.
-
----
+### 5. Core Civic Modules
+- **⚖️ Conflict Mediator:** AI-driven fair mediation for neighborhood disputes and civil disagreements.
+- **📜 Policy Explainer:** Breaks down complex legal jargon and government bills into simple, easy-to-understand summaries.
+- **🗳️ Voter Awareness:** Guides citizens on their voting rights, voter ID registration, and election info.
+- **👥 Discussion Hub:** A safe space for community debates and sharing opinions.
+- **📣 Grassroots Organizer:** Tools to help citizens organize local campaigns and petitions.
+- **📝 Complaint Guide:** Step-by-step assistance for filing RTIs, consumer complaints, and official grievances.
 
 ## 🛠️ Technology Stack
+- **Frontend:** React, Vite, Tailwind CSS, Framer Motion
+- **AI Models:** OpenAI (GPT-4o-mini) for chat, moderation, and analysis
+- **Voice AI:** Sarvam AI (Saaras-v3 for STT, Bulbul-v1 for TTS)
+- **Web Scraping:** Firecrawl API for live data retrieval
+- **Backend/Database:** Vercel Serverless Functions, Supabase (for persistent caching and data storage)
+- **Deployment:** Vercel
 
-- **Core**: [React 19](https://react.dev/) + [Vite](https://vitejs.dev/)
-- **AI Intelligence**: [Groq API](https://groq.com/) (using `llama-3.3-70b-versatile`)
-- **Speech-to-Text**: Groq Whisper API for seamless voice interactions.
-- **Styling**: Vanilla CSS + [TailwindCSS](https://tailwindcss.com/)
-- **Animations**: [Framer Motion](https://www.framer.com/motion/)
-- **3D Elements**: [Three.js](https://threejs.org/) (via `@react-three/fiber`)
-- **Document Generation**: [html2canvas](https://html2canvas.hertzen.com/) & [jsPDF](https://rawgit.com/MrRio/jsPDF/master/docs/index.html)
-- **Localization**: [i18next](https://www.i18next.com/)
+## 🚀 How to Run Locally
 
----
-
-## 🚀 Getting Started
-
-### Prerequisites
-- Node.js (v18 or higher)
-- A Groq API Key
-
-### Installation
-
-1. **Clone the repository**:
+1. Clone the repository:
    ```bash
-   git clone <repository-url>
-   cd civic-ai
+   git clone https://github.com/pixelpioneer-01/Devengers_Hackathon.git
+   cd Devengers_Hackathon
    ```
 
-2. **Install dependencies**:
+2. Install dependencies:
    ```bash
    npm install
    ```
 
-3. **Set up environment variables**:
-   Create a `.env` file in the root directory and add your Groq API key:
+3. Set up Environment Variables:
+   Create a `.env` file in the root directory and add the following keys:
    ```env
-   VITE_API_KEY=your_groq_api_key_here
+   VITE_OPENAI_API_KEY=your_openai_key
+   VITE_SARVAM_API_KEY=your_sarvam_key
+   VITE_SUPABASE_URL=your_supabase_url
+   VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
+   VITE_FIRECRAWL_API_KEY=your_firecrawl_key
    ```
 
-4. **Run the development server**:
+4. Start the development server:
    ```bash
    npm run dev
    ```
+   *(Note: To test serverless functions like the AI moderation locally, use `vercel dev` instead of `npm run dev`)*
 
----
-
-## 🛡️ Ethics & Neutrality
-CivicAI is built on the principle of non-partisan AI. The platform provides insights based on available data and does not represent official government opinions. It includes an Ethics Modal to ensure users understand the role and limitations of AI in governance.
-
----
-
-## 🏆 Project Context
-Developed as part of the **Smart Bharat Hackathon**, CivicAI demonstrates how Large Language Models can be harnessed to create more transparent, inclusive, and accessible civic infrastructures.
-
----
-
-## 📝 Submission Metadata
-
-### 📋 Project Description
-**CivicAI (Smart Bharat AI Civic Companion)** is a premium, GenAI-powered civic governance platform built to bridge the gap between citizens and local administration. The platform simplifies complex legislative documents, guides citizens on how to report public complaints, recommends government schemes, promotes non-partisan voter awareness, and acts as a neutral mediator for community disputes. By offering full multilingual support (English & Hindi) and a voice-enabled interface, CivicAI ensures digital inclusion for all demographics.
-
-### 🧠 Prompt Workflow & Strategy
-CivicAI relies on a multi-agent prompt routing and auditing workflow to deliver accurate, non-partisan, and structured civic assistance:
-
-1. **System Prompt Enforcements (Guardrails)**:
-   Each module utilizes strict system prompts to maintain absolute neutrality, empathy, and clarity. The prompts explicitly restrict the AI from taking political/partisan sides, expressing personal bias, or recommending specific candidates/parties.
-2. **Deterministic Response Formatting**:
-   System prompts enforce strict markdown header structures (e.g., `## Neutral Summary`, `## Common Ground`, `## Fair Resolution`). This allows the frontend to parse the generated content reliably and render clean, stylized UI components.
-3. **Dual-Agent Verification (Mediation Bias Audit)**:
-   For sensitive tasks like conflict mediation, the output generated by the primary **AI Mediator** (`CONFLICT_MEDIATOR_PROMPT`) is automatically routed to a secondary **Impartial Bias Auditor** (`BIAS_CHECK_PROMPT`). This agent scores the response for language, representation, and solution bias, providing suggestions for correction and ensuring fair representation of all citizen perspectives.
-4. **Context-Specific Guardrails**:
-   - **Voter Awareness**: Limited to Indian democracy and official ECI guidelines, avoiding political opinions.
-   - **Grassroots Organizer**: Structured into actionable, legal, 5-step community action plans, contact directories, and downloadable petition/complaint letter templates.
-   - **Policy Explainer**: Compiles simple summaries, pros/cons, affected groups, and real-life examples without political jargon.
-
----
-
-*Made with ❤️ for a better democracy.*
+## 🛡️ Data Privacy & Ethics
+CivicAI is built on the principles of privacy and non-partisanship.
+- **No Data Mining:** User inputs are processed ephemerally.
+- **AI Neutrality:** Insights do not represent government opinions and are designed to be strictly objective.
+- **Anonymity:** The Discussion Hub ensures the complete privacy of citizens voicing their concerns.
