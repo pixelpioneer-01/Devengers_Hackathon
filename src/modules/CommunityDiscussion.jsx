@@ -293,6 +293,39 @@ export default function CommunityDiscussion({ apiKey, language, showToast }) {
     window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(tweetText)}`, '_blank');
   };
 
+  const [tweeting, setTweeting] = useState(false);
+  const postToCivicAIX = async (text) => {
+    if (!text.trim()) return;
+    // Trim to 250 chars to leave room for hashtag
+    const trimmedText = text.trim().slice(0, 230);
+    const tweetText = `${trimmedText}\n\n${selectedHashtag || '#CivicAI'} #AnonymousCivicVoice`;
+    setTweeting(true);
+    try {
+      const res = await fetch('/api/tweet', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          text: tweetText,
+          openAIKey: import.meta.env.VITE_OPENAI_API_KEY
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        if (data.moderated) {
+          showToast('⚠️ Message blocked by AI: contains harmful content. Please revise.', 'error');
+        } else {
+          throw new Error(data.error || 'Failed to post tweet');
+        }
+      } else {
+        showToast('✅ Your anonymous civic voice has been posted on X via @CivicAI!', 'success');
+        if (data.tweetLink) window.open(data.tweetLink, '_blank');
+      }
+    } catch (err) {
+      showToast(err.message, 'error');
+    }
+    setTweeting(false);
+  };
+
   const openXSearch = (query) => {
     window.open(`https://twitter.com/search?q=${encodeURIComponent(query)}`, '_blank');
   };
@@ -426,11 +459,13 @@ export default function CommunityDiscussion({ apiKey, language, showToast }) {
                     <Mic size={20} /> {listening ? (language === 'hi-IN' ? 'सुन रहा हूँ...' : 'Listening...') : (language === 'hi-IN' ? 'आवाज़ राय' : 'Voice Opinion')}
                   </button>
                   <button 
-                    onClick={() => shareToX(opinionInput)}
-                    disabled={!opinionInput.trim()}
+                    onClick={() => postToCivicAIX(opinionInput)}
+                    disabled={!opinionInput.trim() || tweeting}
                     className="flex items-center gap-4 px-8 py-4 bg-black text-white rounded-xl font-black uppercase tracking-widest text-xs shadow-xl hover:bg-gray-900 transition-all disabled:opacity-30"
+                    title="AI checks your message, then posts anonymously via @CivicAI on X"
                   >
-                    <XIcon size={20} /> {t('modules.community.tweetAnonymously')}
+                    {tweeting ? <RefreshCw size={20} className="animate-spin" /> : <XIcon size={20} />}
+                    {tweeting ? 'AI Checking...' : (language === 'hi-IN' ? 'CivicAI पर पोस्ट करें' : 'Post via @CivicAI')}
                   </button>
                 </div>
                 <button 
