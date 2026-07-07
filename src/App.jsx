@@ -19,6 +19,8 @@ import LeaderFinder from './modules/LeaderFinder';
 import SchemeFinder from './modules/SchemeFinder';
 import ComplaintGuide from './modules/ComplaintGuide';
 import EthicsModal from './components/EthicsModal';
+import LanguageSelectionModal from './components/LanguageSelectionModal';
+import CivicBot from './components/CivicBot';
 
 const ALL_MODULES = [
   { id: 'landing', translationKey: 'landing.title', icon: null },
@@ -38,13 +40,29 @@ export default function App() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [isHowYouKnowOpen, setIsHowYouKnowOpen] = useState(false);
   const [showEthics, setShowEthics] = useState(false);
+  const [showLangSelect, setShowLangSelect] = useState(false);
   const [apiKey] = useState(() => localStorage.getItem('civicai-api-key') || '');
   const [toast, setToast] = useState(null);
 
   useEffect(() => {
+    // Show language selection FIRST on new visits
+    const savedLang = localStorage.getItem('civicai-language');
+    if (!savedLang) {
+      setShowLangSelect(true);
+    } else {
+      i18n.changeLanguage(savedLang);
+    }
+    const hasSeenEthics = localStorage.getItem('civicai-ethics-seen');
+    if (!hasSeenEthics && savedLang) setShowEthics(true);
+  }, []);
+
+  const handleLanguageSelect = (lang) => {
+    i18n.changeLanguage(lang.code);
+    localStorage.setItem('civicai-language', lang.code);
+    setShowLangSelect(false);
     const hasSeenEthics = localStorage.getItem('civicai-ethics-seen');
     if (!hasSeenEthics) setShowEthics(true);
-  }, []);
+  };
 
   const handleAcceptEthics = () => {
     localStorage.setItem('civicai-ethics-seen', 'true');
@@ -80,6 +98,9 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-[#F8F9FA] text-[#1A1A1A] font-body flex flex-col">
+      {/* Language Selection — shown first on new visit */}
+      <AnimatePresence>{showLangSelect && <LanguageSelectionModal onSelect={handleLanguageSelect} />}</AnimatePresence>
+
       <AnimatePresence>{showEthics && <EthicsModal onAccept={handleAcceptEthics} />}</AnimatePresence>
 
       {/* TOP BAR */}
@@ -228,6 +249,15 @@ export default function App() {
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* CivicBot — Floating AI Guide */}
+      {!showLangSelect && (
+        <CivicBot
+          language={i18n.language}
+          onNavigate={handleModuleSwitch}
+          showToast={showToast}
+        />
+      )}
     </div>
   );
 }
