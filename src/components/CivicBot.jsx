@@ -113,7 +113,7 @@ async function stopSTT(language) {
 }
 
 // ── Main CivicBot Component ─────────────────────────────────────────────────
-export default function CivicBot({ language, onNavigate, showToast }) {
+export default function CivicBot({ language, onNavigate, onLanguageChange, showToast }) {
   const [open, setOpen] = useState(false);
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState('');
@@ -158,12 +158,13 @@ Your job is to understand the user's civic problem and recommend the right tool 
 - complaint: For filing RTI, complaints against officials, consumer complaints
 
 IMPORTANT RULES:
-1. Always respond in ${langName} language only.
-2. First understand the user's problem, then recommend the best module.
-3. When recommending a module, end your message with exactly: [NAVIGATE:module_id] — for example [NAVIGATE:schemes] or [NAVIGATE:complaint]
-4. Be warm, empathetic, and use simple language suitable for all citizens.
-5. If the user says thank you or their problem is solved, wish them well without navigating.
-6. Keep responses concise (under 100 words).`;
+1. Always respond in ${langName} language only, UNLESS the user asks to change the language.
+2. If the user asks to change the language (e.g. "speak in hindi", "change language to english", "marathi madhe bol"), reply briefly in the NEW language and append exactly: [LANGUAGE:code] at the end. Use these codes: en-IN, hi-IN, mr-IN, bn-IN, te-IN, ta-IN, kn-IN, gu-IN. Example: "ठीक है, मैं अब हिंदी में बात करूँगा। [LANGUAGE:hi-IN]"
+3. First understand the user's problem, then recommend the best module.
+4. When recommending a module, end your message with exactly: [NAVIGATE:module_id] — for example [NAVIGATE:schemes] or [NAVIGATE:complaint]
+5. Be warm, empathetic, and use simple language suitable for all citizens.
+6. If the user says thank you or their problem is solved, wish them well without navigating.
+7. Keep responses concise (under 100 words).`;
 
   const sendMessage = async (userMsg) => {
     const msg = userMsg || input.trim();
@@ -209,6 +210,18 @@ IMPORTANT RULES:
             setOpen(false);
           }, 1500);
         }
+      }
+
+      // Check for language change command
+      const langMatch = reply.match(/\[LANGUAGE:([\w-]+)\]/);
+      if (langMatch) {
+        const langCode = langMatch[1];
+        reply = reply.replace(/\[LANGUAGE:[\w-]+\]/, '').trim();
+        setTimeout(() => {
+          if (onLanguageChange) {
+            onLanguageChange({ code: langCode });
+          }
+        }, 1000);
       }
 
       setMessages(prev => [...prev, { role: 'assistant', content: reply }]);

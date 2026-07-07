@@ -253,6 +253,7 @@ export default function App() {
         <CivicBot
           language={i18n.language}
           onNavigate={handleModuleSwitch}
+          onLanguageChange={handleLanguageSelect}
           showToast={showToast}
         />
       )}
